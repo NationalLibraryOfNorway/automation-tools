@@ -165,8 +165,9 @@ def create_dip(aip_dir, aip_uuid, output_dir):
     :param str output_dir: absolute path to a directory to place the DIP
     :returns: absolute path to the created DIP folder
     """
-    aip_name = os.path.basename(aip_dir)[:-37]
-    dip_dir = os.path.join(output_dir, "{}_{}_DIP".format(aip_name, aip_uuid))
+    aip_dir_name = os.path.basename(aip_dir)
+    aip_name = aip_dir_name[:-37]
+    dip_dir = os.path.join(output_dir, aip_dir_name)
     objects_dir = os.path.join(dip_dir, "objects")
     to_zip_dir = os.path.join(objects_dir, aip_name)
 

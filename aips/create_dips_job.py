@@ -24,6 +24,7 @@ import amclient
 
 from aips import create_dip
 from aips import models
+from dips import atom_upload, storage_service_upload
 
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
 LOGGER = logging.getLogger("create_dip")
@@ -109,14 +110,43 @@ def main(args):
             LOGGER.debug("Skipping AIP (already processed/processing): %s", uuid)
             continue
 
-        create_dip.main(
+        mets_type = "atom"
+        if args["upload_type"] == "ss-upload":
+            mets_type = "storage-service"
+
+        dip_path = create_dip.main(
             ss_url=args["ss_url"],
             ss_user=args["ss_user"],
             ss_api_key=args["ss_api_key"],
             aip_uuid=uuid,
             tmp_dir=args["tmp_dir"],
             output_dir=args["output_dir"],
+            mets_type=mets_type,
         )
+
+        if args["upload_type"] == "ss-upload":
+            storage_service_upload.main(
+                ss_url=args["ss_url"],
+                ss_user=args["ss_user"],
+                ss_api_key=args["ss_api_key"],
+                pipeline_uuid=args["pipeline_uuid"],
+                cp_location_uuid=args["cp_location_uuid"],
+                ds_location_uuid=args["ds_location_uuid"],
+                shared_directory=args["shared_directory"],
+                dip_path=dip_path,
+                aip_uuid=uuid,
+                delete_local_copy=args["delete_local_copy"],
+            )
+        elif args["upload_type"] == "atom-upload":
+            atom_upload.main(
+                atom_url=args["atom_url"],
+                atom_email=args["atom_email"],
+                atom_password=args["atom_password"],
+                atom_slug=args["atom_slug"],
+                rsync_target=args["rsync_target"],
+                dip_path=dip_path,
+                delete_local_copy=args["delete_local_copy"],
+            )
 
         # POSSIBLE ENHANCEMENT:
         # Save return value from create_dip.main() and update Aip status
@@ -217,6 +247,86 @@ if __name__ == "__main__":
         choices=["ERROR", "WARNING", "INFO", "DEBUG"],
         default=None,
         help="Set the debugging output level. This will override -q and -v",
+    )
+
+    # Delete argument can't be set in the two subparsers bellow with the same name
+    parser.add_argument(
+        "--delete-local-copy",
+        action="store_true",
+        help="Deletes the local DIPs after upload if any of the upload arguments is used.",
+    )
+
+    # Create optional upload type subparsers
+    subparsers = parser.add_subparsers(
+        dest="upload_type",
+        title="Upload options",
+        description="The following arguments allow to upload the DIP after creation:",
+        help="Leave empty to keep the DIP in the output path.",
+    )
+
+    # Storage Service upload subparser with extra SS required arguments
+    parser_ss = subparsers.add_parser(
+        "ss-upload",
+        help="Storage Service upload. Check 'create_dips_job ss-upload -h'.",
+    )
+    parser_ss.add_argument(
+        "--pipeline-uuid",
+        metavar="UUID",
+        required=True,
+        help="UUID of the Archivemativa pipeline in the Storage Service",
+    )
+    parser_ss.add_argument(
+        "--cp-location-uuid",
+        metavar="UUID",
+        required=True,
+        help="UUID of the pipeline's Currently Processing location in the Storage Service",
+    )
+    parser_ss.add_argument(
+        "--ds-location-uuid",
+        metavar="UUID",
+        required=True,
+        help="UUID of the pipeline's DIP storage location in the Storage Service",
+    )
+    parser_ss.add_argument(
+        "--shared-directory",
+        metavar="PATH",
+        help="Absolute path to the pipeline's shared directory.",
+        default="/var/archivematica/sharedDirectory/",
+    )
+
+    # AtoM upload subparser with AtoM required arguments
+    parser_atom = subparsers.add_parser(
+        "atom-upload", help="AtoM upload. Check 'create_dips_job atom-upload -h'."
+    )
+    parser_atom.add_argument(
+        "--atom-url",
+        metavar="URL",
+        help="AtoM instance URL. Default: http://192.168.168.193",
+        default="http://192.168.168.193",
+    )
+    parser_atom.add_argument(
+        "--atom-email",
+        metavar="EMAIL",
+        required=True,
+        help="Email of the AtoM user to authenticate as.",
+    )
+    parser_atom.add_argument(
+        "--atom-password",
+        metavar="PASSWORD",
+        required=True,
+        help="Password of the AtoM user.",
+    )
+    parser_atom.add_argument(
+        "--atom-slug",
+        metavar="SLUG",
+        required=True,
+        help="AtoM archival description slug to target the upload.",
+    )
+    parser_atom.add_argument(
+        "--rsync-target",
+        metavar="HOST:PATH",
+        help="Destination value passed to Rsync. Default: 192.168.168.193:/tmp.",
+        default="192.168.168.193:/tmp",
     )
 
     args = parser.parse_args()

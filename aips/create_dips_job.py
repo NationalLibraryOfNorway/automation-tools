@@ -5,11 +5,6 @@ Create DIPs from an SS location
 Get all AIPs from an existing SS instance, filtering them by location,
 creating DIPs using the create_dip.py script and keeping track of them
 in an SQLite database.
-
-POSSIBLE ENHANCEMENT: Add status to Aip table in database:
-The create_dip.main() function returns different error values, some of
-them could allow a retry of the DIP creation in following executions.
-More info in comments bellow.
 """
 
 import argparse
@@ -28,10 +23,6 @@ from dips import atom_upload, storage_service_upload
 
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
 LOGGER = logging.getLogger("create_dip")
-
-# POSSIBLE ENHANCEMENT:
-# Create Aip status constants, better in create_dip.py
-# and use them in its returns and in here.
 
 
 def setup_logger(log_file, log_level="INFO"):
@@ -105,8 +96,6 @@ def main(args):
             session.commit()
         except exc.IntegrityError:
             session.rollback()
-            # POSSIBLE ENHANCEMENT:
-            # Check Aip status and allow retry in some of them
             LOGGER.debug("Skipping AIP (already processed/processing): %s", uuid)
             continue
 
@@ -147,9 +136,6 @@ def main(args):
                 dip_path=dip_path,
                 delete_local_copy=args["delete_local_copy"],
             )
-
-        # POSSIBLE ENHANCEMENT:
-        # Save return value from create_dip.main() and update Aip status
 
     LOGGER.info("All AIPs have been processed")
 

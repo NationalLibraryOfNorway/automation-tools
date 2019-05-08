@@ -3,8 +3,11 @@
 Create DIPs from an SS location
 
 Get all AIPs from an existing SS instance, filtering them by location,
-creating DIPs using the create_dip.py script and keeping track of them
+creating DIPs using the `create_dip` script and keeping track of them
 in an SQLite database.
+
+Optionally, uploads those DIPs to AtoM or the Storage Service using
+the scripts from `dips` and deletes the local copy.
 """
 
 import argparse

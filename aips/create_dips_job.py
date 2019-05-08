@@ -65,22 +65,22 @@ def setup_logger(log_file, log_level="INFO"):
     logging.config.dictConfig(CONFIG)
 
 
-def main(
-    ss_url, ss_user, ss_api_key, location_uuid, tmp_dir, output_dir, database_file
-):
-    LOGGER.info("Processing AIPs in SS location: %s", location_uuid)
+def main(args):
+    LOGGER.info("Processing AIPs in SS location: %s", args["location_uuid"])
 
     # Idempotently create database and Aip table and create session
     try:
-        session = models.init(database_file)
+        session = models.init(args["database_file"])
     except IOError:
-        LOGGER.error("Could not create database in: %s", database_file)
+        LOGGER.error("Could not create database in: %s", args["database_file"])
         return 1
 
     # Get UPLOADED and VERIFIED AIPs from the SS
     try:
         am_client = amclient.AMClient(
-            ss_url=ss_url, ss_user_name=ss_user, ss_api_key=ss_api_key
+            ss_url=args["ss_url"],
+            ss_user_name=args["ss_user"],
+            ss_api_key=args["ss_api_key"],
         )
         # There is an issue in the SS API that avoids
         # filtering the results by location. See:
@@ -91,7 +91,7 @@ def main(
         return 2
 
     # Get only AIPs from the specified location
-    aip_uuids = filter_aips(aips, location_uuid)
+    aip_uuids = filter_aips(aips, args["location_uuid"])
 
     # Create DIPs for those AIPs
     for uuid in aip_uuids:
@@ -110,12 +110,12 @@ def main(
             continue
 
         create_dip.main(
-            ss_url=ss_url,
-            ss_user=ss_user,
-            ss_api_key=ss_api_key,
+            ss_url=args["ss_url"],
+            ss_user=args["ss_user"],
+            ss_api_key=args["ss_api_key"],
             aip_uuid=uuid,
-            tmp_dir=tmp_dir,
-            output_dir=output_dir,
+            tmp_dir=args["tmp_dir"],
+            output_dir=args["output_dir"],
         )
 
         # POSSIBLE ENHANCEMENT:
@@ -232,14 +232,5 @@ if __name__ == "__main__":
 
     setup_logger(args.log_file, log_level)
 
-    sys.exit(
-        main(
-            ss_url=args.ss_url,
-            ss_user=args.ss_user,
-            ss_api_key=args.ss_api_key,
-            location_uuid=args.location_uuid,
-            tmp_dir=args.tmp_dir,
-            output_dir=args.output_dir,
-            database_file=args.database_file,
-        )
-    )
+    # Transform arguments to dict to pass them to the main function
+    sys.exit(main(vars(args)))

@@ -60,7 +60,7 @@ def setup_logger(log_file, log_level="INFO"):
     logging.config.dictConfig(CONFIG)
 
 
-def main(ss_url, ss_user, ss_api_key, aip_uuid, tmp_dir, output_dir):
+def main(ss_url, ss_user, ss_api_key, aip_uuid, tmp_dir, output_dir, mets_type="atom"):
     LOGGER.info("Starting DIP creation from AIP: %s", aip_uuid)
 
     if not os.path.isdir(tmp_dir):
@@ -105,7 +105,7 @@ def main(ss_url, ss_user, ss_api_key, aip_uuid, tmp_dir, output_dir):
         return 5
 
     LOGGER.info("Creating DIP")
-    dip_dir = create_dip(aip_dir, aip_uuid, output_dir)
+    dip_dir = create_dip(aip_dir, aip_uuid, output_dir, mets_type)
 
     if not dip_dir:
         LOGGER.error("Unable to create DIP")
@@ -156,7 +156,7 @@ def extract_aip(aip_file, aip_uuid, tmp_dir):
     return extract_aip(extracted_entry, aip_uuid, tmp_dir)
 
 
-def create_dip(aip_dir, aip_uuid, output_dir):
+def create_dip(aip_dir, aip_uuid, output_dir, mets_type):
     """
     Creates a DIP from an uncompressed AIP.
 
@@ -262,46 +262,54 @@ def create_dip(aip_dir, aip_uuid, output_dir):
         timestamp = int(fslastmodified) // 1000
         os.utime(dip_file_path, (timestamp, timestamp))
 
-    # Modify METS file for DIP
-    objects_entry = None
-    for fsentry in fsentries:
-        # Do not delete AIP entry
-        if (
-            fsentry.label == os.path.basename(aip_dir)
-            and fsentry.type.lower() == "directory"
-        ):
-            continue
+    # Modify or copy METS file for DIP based on mets_type argument
+    dip_mets_file = os.path.join(dip_dir, "METS.{}.xml".format(aip_uuid))
+    if mets_type == "atom":
+        LOGGER.info("Creating DIP METS file for AtoM upload.")
+        objects_entry = None
+        for fsentry in fsentries:
+            # Do not delete AIP entry
+            if (
+                fsentry.label == os.path.basename(aip_dir)
+                and fsentry.type.lower() == "directory"
+            ):
+                continue
 
-        # Do not delete objects entry and save it for parenting
-        if fsentry.label == "objects" and fsentry.type.lower() == "directory":
-            objects_entry = fsentry
-            continue
+            # Do not delete objects entry and save it for parenting
+            if fsentry.label == "objects" and fsentry.type.lower() == "directory":
+                objects_entry = fsentry
+                continue
 
-        # Delete all the others
-        mets.remove_entry(fsentry)
+            # Delete all the others
+            mets.remove_entry(fsentry)
 
-    if not objects_entry:
-        LOGGER.error("Could not find objects entry in METS file")
-        return
+        if not objects_entry:
+            LOGGER.error("Could not find objects entry in METS file")
+            return
 
-    # Create new entry for ZIP file
-    entry = metsrw.FSEntry(
-        label="{}.zip".format(aip_name),
-        path="objects/{}.zip".format(aip_name),
-        file_uuid=str(uuid.uuid4()),
-    )
+        # Create new entry for ZIP file
+        entry = metsrw.FSEntry(
+            label="{}.zip".format(aip_name),
+            path="objects/{}.zip".format(aip_name),
+            file_uuid=str(uuid.uuid4()),
+        )
 
-    # Add new entry to objects directory
-    objects_entry.add_child(entry)
+        # Add new entry to objects directory
+        objects_entry.add_child(entry)
 
-    # Create DIP METS file
-    LOGGER.info("Creating DIP METS file")
-    dip_mets_file = "{}/METS.{}.xml".format(dip_dir, aip_uuid)
-    try:
-        mets.write(dip_mets_file, fully_qualified=True, pretty_print=True)
-    except Exception:
-        LOGGER.error("Could not create DIP METS file")
-        return
+        # Create DIP METS file
+        try:
+            mets.write(dip_mets_file, fully_qualified=True, pretty_print=True)
+        except Exception:
+            LOGGER.error("Could not create DIP METS file")
+            return
+    else:
+        LOGGER.info("Copying AIP's METS file.")
+        try:
+            shutil.copy(to_zip_mets_file, dip_mets_file)
+        except Exception:
+            LOGGER.error("Could not create DIP METS file")
+            return
 
     # Compress to_zip_dir inside the DIP objects folder
     LOGGER.info("Compressing ZIP folder inside objects")
@@ -358,6 +366,12 @@ if __name__ == "__main__":
         help="Absolute path to the directory used to place the final DIP. Default: /tmp",
         default="/tmp",
     )
+    parser.add_argument(
+        "--mets-type",
+        choices=["atom", "storage-service"],
+        default="atom",
+        help="Generate METS file for AtoM upload or use the AIP's METS file for Storage Service upload. Default: atom.",
+    )
 
     # Logging
     parser.add_argument(
@@ -401,5 +415,6 @@ if __name__ == "__main__":
             aip_uuid=args.aip_uuid,
             tmp_dir=args.tmp_dir,
             output_dir=args.output_dir,
+            mets_type=args.mets_type,
         )
     )

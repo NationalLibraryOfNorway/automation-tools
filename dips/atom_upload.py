@@ -12,6 +12,7 @@ import logging
 import logging.config  # Has to be imported separately
 import os
 import subprocess
+import shutil
 import sys
 
 import requests
@@ -53,7 +54,15 @@ def setup_logger(log_file, log_level="INFO"):
     logging.config.dictConfig(CONFIG)
 
 
-def main(atom_url, atom_email, atom_password, atom_slug, rsync_target, dip_path):
+def main(
+    atom_url,
+    atom_email,
+    atom_password,
+    atom_slug,
+    rsync_target,
+    dip_path,
+    delete_local_copy,
+):
     """Sends the DIP to the AtoM host and a deposit request to the AtoM instance"""
     LOGGER.info("Starting DIP upload to AtoM from: %s", dip_path)
 
@@ -72,6 +81,13 @@ def main(atom_url, atom_email, atom_password, atom_slug, rsync_target, dip_path)
         return 2
 
     LOGGER.info("DIP deposited in AtoM")
+
+    if delete_local_copy:
+        LOGGER.info("Deleting local DIP.")
+        try:
+            shutil.rmtree(dip_path)
+        except (OSError, shutil.Error) as e:
+            LOGGER.warning("DIP removal failed: %s", e)
 
 
 def rsync(rsync_target, dip_path):
@@ -179,6 +195,11 @@ if __name__ == "__main__":
         required=True,
         help="Absolute path to the DIP to upload.",
     )
+    parser.add_argument(
+        "--delete-local-copy",
+        action="store_true",
+        help="Deletes the local DIP after upload.",
+    )
 
     # Logging
     parser.add_argument(
@@ -222,5 +243,6 @@ if __name__ == "__main__":
             atom_slug=args.atom_slug,
             rsync_target=args.rsync_target,
             dip_path=args.dip_path,
+            delete_local_copy=args.delete_local_copy,
         )
     )

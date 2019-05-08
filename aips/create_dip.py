@@ -116,6 +116,8 @@ def main(ss_url, ss_user, ss_api_key, aip_uuid, tmp_dir, output_dir, mets_type="
 
     LOGGER.info("DIP created in: %s", dip_dir)
 
+    return dip_dir
+
 
 def extract_aip(aip_file, aip_uuid, tmp_dir):
     """
@@ -407,14 +409,20 @@ if __name__ == "__main__":
 
     setup_logger(args.log_file, log_level)
 
-    sys.exit(
-        main(
-            ss_url=args.ss_url,
-            ss_user=args.ss_user,
-            ss_api_key=args.ss_api_key,
-            aip_uuid=args.aip_uuid,
-            tmp_dir=args.tmp_dir,
-            output_dir=args.output_dir,
-            mets_type=args.mets_type,
-        )
+    ret = main(
+        ss_url=args.ss_url,
+        ss_user=args.ss_user,
+        ss_api_key=args.ss_api_key,
+        aip_uuid=args.aip_uuid,
+        tmp_dir=args.tmp_dir,
+        output_dir=args.output_dir,
+        mets_type=args.mets_type,
     )
+
+    # The main function returns the DIP's path on success
+    # or an int higher than 0 if it fails. The scrip will
+    # always exit with an int, 0 on success.
+    if type(ret) != int:
+        ret = 0
+
+    sys.exit(ret)

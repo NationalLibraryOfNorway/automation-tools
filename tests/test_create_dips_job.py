@@ -120,6 +120,6 @@ class TestCreateDipsJob(unittest.TestCase):
             ret = create_dips_job.main(args)
             assert ret is None
             dip_path = os.path.join(
-                OUTPUT_DIR, "test_B_3ea465ac-ea0a-4a9c-a057-507e794de332_DIP"
+                OUTPUT_DIR, "test_B-3ea465ac-ea0a-4a9c-a057-507e794de332"
             )
             assert not os.path.isdir(dip_path)

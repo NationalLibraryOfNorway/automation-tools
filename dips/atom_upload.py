@@ -19,13 +19,13 @@ import requests
 
 
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
-LOGGER = logging.getLogger("atom_upload")
+LOGGER = logging.getLogger("dip_workflow")
 
 
 def setup_logger(log_file, log_level="INFO"):
     """Configures the logger to output to console and log file"""
     if not log_file:
-        log_file = os.path.join(THIS_DIR, "atom_upload.log")
+        log_file = os.path.join(THIS_DIR, "dip_workflow.log")
 
     CONFIG = {
         "version": 1,
@@ -47,7 +47,7 @@ def setup_logger(log_file, log_level="INFO"):
             },
         },
         "loggers": {
-            "atom_upload": {"level": log_level, "handlers": ["console", "file"]}
+            "dip_workflow": {"level": log_level, "handlers": ["console", "file"]}
         },
     }
 

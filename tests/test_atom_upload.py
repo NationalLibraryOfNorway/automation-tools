@@ -85,7 +85,8 @@ class TestAtomUpload(unittest.TestCase):
 
         assert ret == 2
 
-    def test_main_success(self):
+    @mock.patch("dips.atom_upload.shutil.rmtree")
+    def test_main_success(self, mock_rmtree):
         rsync_success = mock.patch("dips.atom_upload.rsync", return_value=None)
         deposit_success = mock.patch("dips.atom_upload.deposit", return_value=None)
         with rsync_success, deposit_success:
@@ -99,4 +100,5 @@ class TestAtomUpload(unittest.TestCase):
                 True,
             )
 
+        mock_rmtree.assert_called_with(DIP_PATH)
         assert ret is None

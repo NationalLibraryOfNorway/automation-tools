@@ -116,6 +116,11 @@ def main(args):
             mets_type=mets_type,
         )
 
+        # Do not try upload on creation error
+        if type(dip_path) == int:
+            LOGGER.error("Could not create DIP from AIP: %s", uuid)
+            continue
+
         if args["upload_type"] == "ss-upload":
             storage_service_upload.main(
                 ss_url=args["ss_url"],

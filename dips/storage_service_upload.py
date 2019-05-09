@@ -81,6 +81,7 @@ def main(
         shutil.copytree(dip_path, upload_dip_dir)
     except (OSError, shutil.Error) as e:
         LOGGER.warning("Could not move DIP to currently processing path: %s", e)
+        return 2
 
     # Build DIP data for SS request
     size = 0

@@ -108,11 +108,13 @@ def main(
     url = "%s/api/v2/file/async/" % ss_url
     headers = {"Authorization": "ApiKey %s:%s" % (ss_user, ss_api_key)}
     response = requests.post(url, headers=headers, json=dip_data, timeout=5)
+    result = 0
     if (
         response.status_code != requests.codes.accepted
         or "Location" not in response.headers
     ):
         LOGGER.error("Could not store DIP in SS: %s", response.text)
+        result = 3
     else:
         LOGGER.info("Storing DIP in SS.")
         try:
@@ -126,6 +128,7 @@ def main(
 
         except requests.exceptions.RequestException as e:
             LOGGER.error("Could not store DIP in SS: %s", e)
+            result = 4
 
     # Finally remove the DIP from the currently processing location
     LOGGER.info("Removing duplicates.")
@@ -141,6 +144,8 @@ def main(
             shutil.rmtree(dip_path)
         except (OSError, shutil.Error) as e:
             LOGGER.warning("DIP removal failed: %s", e)
+
+    return result
 
 
 def check_async(url, headers={}, tries=60, interval=10):

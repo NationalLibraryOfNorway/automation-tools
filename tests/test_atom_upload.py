@@ -43,6 +43,7 @@ class TestAtomUpload(unittest.TestCase):
             ATOM_PASSWORD,
             ATOM_SLUG,
             DIP_PATH,
+            True,
         )
 
     @vcr.use_cassette("fixtures/vcr_cassettes/test_atom_upload_deposit_success.yaml")
@@ -57,7 +58,13 @@ class TestAtomUpload(unittest.TestCase):
         effect = subprocess.CalledProcessError(1, [])
         with mock.patch("dips.atom_upload.rsync", side_effect=effect):
             ret = atom_upload.main(
-                ATOM_URL, ATOM_EMAIL, ATOM_PASSWORD, ATOM_SLUG, RSYNC_TARGET, DIP_PATH
+                ATOM_URL,
+                ATOM_EMAIL,
+                ATOM_PASSWORD,
+                ATOM_SLUG,
+                RSYNC_TARGET,
+                DIP_PATH,
+                True,
             )
 
         assert ret == 1
@@ -67,7 +74,13 @@ class TestAtomUpload(unittest.TestCase):
         deposit_fail = mock.patch("dips.atom_upload.deposit", side_effect=Exception(""))
         with rsync_success, deposit_fail:
             ret = atom_upload.main(
-                ATOM_URL, ATOM_EMAIL, ATOM_PASSWORD, ATOM_SLUG, RSYNC_TARGET, DIP_PATH
+                ATOM_URL,
+                ATOM_EMAIL,
+                ATOM_PASSWORD,
+                ATOM_SLUG,
+                RSYNC_TARGET,
+                DIP_PATH,
+                True,
             )
 
         assert ret == 2
@@ -77,7 +90,13 @@ class TestAtomUpload(unittest.TestCase):
         deposit_success = mock.patch("dips.atom_upload.deposit", return_value=None)
         with rsync_success, deposit_success:
             ret = atom_upload.main(
-                ATOM_URL, ATOM_EMAIL, ATOM_PASSWORD, ATOM_SLUG, RSYNC_TARGET, DIP_PATH
+                ATOM_URL,
+                ATOM_EMAIL,
+                ATOM_PASSWORD,
+                ATOM_SLUG,
+                RSYNC_TARGET,
+                DIP_PATH,
+                True,
             )
 
         assert ret is None

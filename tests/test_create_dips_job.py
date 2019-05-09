@@ -50,48 +50,54 @@ class TestCreateDipsJob(unittest.TestCase):
 
     def test_main_fail_db(self):
         """Test a fail when a database can't be created."""
-        ret = create_dips_job.main(
-            SS_URL,
-            SS_USER_NAME,
-            SS_API_KEY,
-            LOCATION_UUID,
-            TMP_DIR,
-            OUTPUT_DIR,
-            "/this/should/be/a/wrong/path/to.db",
-        )
+        args = {
+            "ss_url": SS_URL,
+            "ss_user": SS_USER_NAME,
+            "ss_api_key": SS_API_KEY,
+            "location_uuid": LOCATION_UUID,
+            "tmp_dir": TMP_DIR,
+            "output_dir": OUTPUT_DIR,
+            "database_file": "/this/should/be/a/wrong/path/to.db",
+            "upload_type": None,
+        }
+        ret = create_dips_job.main(args)
         assert ret == 1
 
     @vcr.use_cassette("fixtures/vcr_cassettes/create_dips_job_main_fail_request.yaml")
     def test_main_fail_request(self):
         """Test a fail when an SS connection can't be established."""
         with TmpDir(TMP_DIR):
-            ret = create_dips_job.main(
-                SS_URL,
-                SS_USER_NAME,
-                "bad_api_key",
-                LOCATION_UUID,
-                TMP_DIR,
-                OUTPUT_DIR,
-                DATABASE_FILE,
-            )
+            args = {
+                "ss_url": SS_URL,
+                "ss_user": SS_USER_NAME,
+                "ss_api_key": "bad_api_key",
+                "location_uuid": LOCATION_UUID,
+                "tmp_dir": TMP_DIR,
+                "output_dir": OUTPUT_DIR,
+                "database_file": DATABASE_FILE,
+                "upload_type": None,
+            }
+            ret = create_dips_job.main(args)
             assert ret == 2
 
     @vcr.use_cassette("fixtures/vcr_cassettes/create_dips_job_main_success.yaml")
     def test_main_success(self):
         """Test a success where one DIP is created."""
         with TmpDir(TMP_DIR), TmpDir(OUTPUT_DIR):
-            ret = create_dips_job.main(
-                SS_URL,
-                SS_USER_NAME,
-                SS_API_KEY,
-                LOCATION_UUID,
-                TMP_DIR,
-                OUTPUT_DIR,
-                DATABASE_FILE,
-            )
+            args = {
+                "ss_url": SS_URL,
+                "ss_user": SS_USER_NAME,
+                "ss_api_key": SS_API_KEY,
+                "location_uuid": LOCATION_UUID,
+                "tmp_dir": TMP_DIR,
+                "output_dir": OUTPUT_DIR,
+                "database_file": DATABASE_FILE,
+                "upload_type": None,
+            }
+            ret = create_dips_job.main(args)
             assert ret is None
             dip_path = os.path.join(
-                OUTPUT_DIR, "test_B_3ea465ac-ea0a-4a9c-a057-507e794de332_DIP"
+                OUTPUT_DIR, "test_B-3ea465ac-ea0a-4a9c-a057-507e794de332"
             )
             assert os.path.isdir(dip_path)
 
@@ -101,15 +107,17 @@ class TestCreateDipsJob(unittest.TestCase):
         effect = exc.IntegrityError({}, [], "")
         session_add_patch = mock.patch("sqlalchemy.orm.Session.add", side_effect=effect)
         with TmpDir(TMP_DIR), TmpDir(OUTPUT_DIR), session_add_patch:
-            ret = create_dips_job.main(
-                SS_URL,
-                SS_USER_NAME,
-                SS_API_KEY,
-                LOCATION_UUID,
-                TMP_DIR,
-                OUTPUT_DIR,
-                DATABASE_FILE,
-            )
+            args = {
+                "ss_url": SS_URL,
+                "ss_user": SS_USER_NAME,
+                "ss_api_key": SS_API_KEY,
+                "location_uuid": LOCATION_UUID,
+                "tmp_dir": TMP_DIR,
+                "output_dir": OUTPUT_DIR,
+                "database_file": DATABASE_FILE,
+                "upload_type": None,
+            }
+            ret = create_dips_job.main(args)
             assert ret is None
             dip_path = os.path.join(
                 OUTPUT_DIR, "test_B_3ea465ac-ea0a-4a9c-a057-507e794de332_DIP"

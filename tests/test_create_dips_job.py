@@ -97,3 +97,52 @@ class TestCreateDipsJob(unittest.TestCase):
                 OUTPUT_DIR, "test_B-3ea465ac-ea0a-4a9c-a057-507e794de332"
             )
             assert not os.path.isdir(dip_path)
+
+    @vcr.use_cassette("fixtures/vcr_cassettes/create_dips_job_main_success.yaml")
+    @mock.patch("aips.create_dips_job.atom_upload.main")
+    @mock.patch("aips.create_dips_job.create_dip.main", return_value=1)
+    def test_main_dip_creation_failed(self, mock_create_dip, mock_atom_upload):
+        """Test that a fail on DIP creation doesn't trigger an upload."""
+        with TmpDir(TMP_DIR), TmpDir(OUTPUT_DIR):
+            self.args["upload_type"] = "atom-upload"
+            create_dips_job.main(self.args)
+            assert not mock_atom_upload.called
+
+    @vcr.use_cassette("fixtures/vcr_cassettes/create_dips_job_main_success.yaml")
+    @mock.patch("aips.create_dips_job.atom_upload.main", return_value=None)
+    @mock.patch("aips.create_dips_job.create_dip.main", return_value="fake/path")
+    def test_main_success_atom_upload_call(self, mock_create_dip, mock_atom_upload):
+        """Test that an upload to AtoM is performed."""
+        with TmpDir(TMP_DIR), TmpDir(OUTPUT_DIR):
+            self.args.update(
+                {
+                    "upload_type": "atom-upload",
+                    "atom_url": "",
+                    "atom_email": "",
+                    "atom_password": "",
+                    "atom_slug": "",
+                    "rsync_target": "",
+                    "delete_local_copy": True,
+                }
+            )
+            create_dips_job.main(self.args)
+            assert mock_atom_upload.called
+
+    @vcr.use_cassette("fixtures/vcr_cassettes/create_dips_job_main_success.yaml")
+    @mock.patch("aips.create_dips_job.storage_service_upload.main", return_value=None)
+    @mock.patch("aips.create_dips_job.create_dip.main", return_value="fake/path")
+    def test_main_success_ss_upload_call(self, mock_create_dip, mock_ss_upload):
+        """Test that an upload to AtoM is performed."""
+        with TmpDir(TMP_DIR), TmpDir(OUTPUT_DIR):
+            self.args.update(
+                {
+                    "upload_type": "ss-upload",
+                    "pipeline_uuid": "",
+                    "cp_location_uuid": "",
+                    "ds_location_uuid": "",
+                    "shared_directory": "",
+                    "delete_local_copy": True,
+                }
+            )
+            create_dips_job.main(self.args)
+            assert mock_ss_upload.called
